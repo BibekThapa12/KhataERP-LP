@@ -4,11 +4,29 @@ import {
   ChevronDown, FileText, Landmark, Menu, PackageCheck,
   ReceiptText, Scale, ShieldCheck, TrendingUp, Users, WalletCards, X,
 } from 'lucide-react'
+import gitaSuppliersLogo from './assets/gita-suppliers-logo.png'
+import pradhanLiquorsLogo from './assets/pradhan-liquors-logo.png'
 
 const AUTH_URL = `${(import.meta.env.VITE_APP_URL || 'https://khataerp.xyz').replace(/\/+$/, '')}/login`
 const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || 'hello@khataerp.com'
 
 type IconType = React.ComponentType<{ size?: number; strokeWidth?: number; 'aria-hidden'?: boolean }>
+
+type Client = {
+  id: string
+  name: string
+  category: string
+  location: string
+  description: string
+  logo: string | null
+}
+
+const clients: Client[] = [
+  { id: 'gita-suppliers', name: 'Gita Suppliers', category: 'Coca-Cola Distributor', location: 'Birtamod', description: 'Beverage distribution business serving retailers and outlets across the Birtamod area.', logo: gitaSuppliersLogo },
+  { id: 'muktinath-enterprises', name: 'Muktinath Enterprises', category: 'Beverage Distributor', location: 'Nepal', description: 'Official distributor of Barahsinghe Beer, focused on beverage distribution and retail supply.', logo: null },
+  { id: 'gaura-suppliers', name: 'Gaura Suppliers', category: 'Beverage Distributor', location: 'Birtamod', description: 'Distributor for Bottlers Nepal Terai Limited (BNTL), handling beverage sales and distribution operations.', logo: null },
+  { id: 'pradhan-liquors', name: 'Pradhan Liquors', category: 'Liquor Wholesale', location: 'Durgapur', description: 'Wholesale liquor supplier serving retailers and commercial customers in and around Durgapur.', logo: pradhanLiquorsLogo },
+]
 
 const features: Array<{ icon: IconType; title: string; text: string; points: string[] }> = [
   { icon: ReceiptText, title: 'Invoices & daily transactions', text: 'Record the work your business already does, without maintaining disconnected books.', points: ['Sales, purchases and returns', 'Receipts, payments and contra', 'Simple income and expense entry'] },
@@ -39,6 +57,36 @@ function SectionTitle({ eyebrow, title, description, center = false }: { eyebrow
   return <div className={`section-title ${center ? 'center' : ''}`}><p className="eyebrow">{eyebrow}</p><h2>{title}</h2>{description && <p>{description}</p>}</div>
 }
 
+function ClientCard({ client }: { client: Client }) {
+  const initials = client.name.split(' ').map(word => word[0]).join('').slice(0, 2)
+  return <article className="client-card">
+    <div className="client-card-head">
+      <div className={`client-logo ${client.id === 'gita-suppliers' || client.id === 'pradhan-liquors' ? 'client-logo-crop' : ''}`} aria-hidden="true">
+        {client.logo ? <img src={client.logo} alt="" /> : <span>{initials}</span>}
+      </div>
+      <div><h3>{client.name}</h3><p>{client.category}</p></div>
+    </div>
+    <p className="client-description">{client.description}</p>
+    <p className="client-location">{client.location}</p>
+  </article>
+}
+
+function ClientMarquee({ items }: { items: Client[] }) {
+  return <div className="client-marquee" tabIndex={0} aria-label="KhataERP clients">
+    <div className="clients-track">
+      <div className="clients-group">{items.map(client => <ClientCard client={client} key={client.id} />)}</div>
+      <div className="clients-group clients-group-copy" aria-hidden="true">{items.map(client => <ClientCard client={client} key={`copy-${client.id}`} />)}</div>
+    </div>
+  </div>
+}
+
+function ClientsSection() {
+  return <section className="clients-section" aria-labelledby="clients-title">
+    <div className="container clients-heading"><p className="eyebrow">Our clients</p><h2 id="clients-title">Trusted by businesses that run on KhataERP</h2><p>Helping businesses manage accounting, inventory, sales and everyday operations with confidence.</p></div>
+    <ClientMarquee items={clients} />
+  </section>
+}
+
 function DashboardPreview() {
   return <div className="dashboard-preview" aria-label="Illustration of the KhataERP dashboard">
     <div className="preview-top"><div><span className="preview-brand">Khata</span><small>ERP for Nepal</small></div><div className="preview-user">Demo Company</div></div>
@@ -65,6 +113,8 @@ function App() {
       <section className="hero"><div className="container hero-grid"><div className="hero-copy"><h1>Run your business books with confidence—<em>built for Nepal.</em></h1><p className="hero-text">Create invoices, track stock and cheques, manage cash and bank, and understand your reports from one connected cloud ERP.</p><div className="hero-actions"><ButtonLink href={AUTH_URL} className="button-lg">Start 14-day free trial <ArrowRight size={17}/></ButtonLink><ButtonLink href="#features" secondary className="button-lg">Explore features</ButtonLink></div><div className="hero-proof"><span><Check/> No card required*</span><span><Check/> Nepali B.S. dates</span><span><Check/> NPR ready</span></div><p className="microcopy">*Launch policy to be confirmed before publication.</p></div><div className="hero-visual"><div className="visual-glow"/><DashboardPreview/><div className="floating-card"><span><TrendingUp/></span><div><small>Net Profit</small><b>Rs 3,42,800</b></div></div></div></div></section>
 
       <section className="trust-strip"><div className="container trust-grid"><div><CalendarDays/><span><b>Nepali-first</b><small>B.S. dates & fiscal years</small></span></div><div><ReceiptText/><span><b>VAT-ready</b><small>Optional VAT workflows</small></span></div><div><PackageCheck/><span><b>Inventory connected</b><small>Stock updates with vouchers</small></span></div><div><Scale/><span><b>Accounting-correct</b><small>Balanced entries underneath</small></span></div></div></section>
+
+      <ClientsSection />
 
       <section className="section problem"><div className="container"><SectionTitle eyebrow="One connected system" title="Enter it once. See it everywhere it matters." description="KhataERP connects each transaction to the operational and financial view that depends on it." center/><div className="workflow"><div className="workflow-step"><span>01</span><ReceiptText/><h3>Create the document</h3><p>Invoice, purchase, receipt, payment, income, expense or cheque.</p></div><ArrowRight className="flow-arrow"/><div className="workflow-step"><span>02</span><BookOpen/><h3>Books update correctly</h3><p>Parties, cash, bank, ledgers and journal lines stay connected.</p></div><ArrowRight className="flow-arrow"/><div className="workflow-step"><span>03</span><BarChart3/><h3>Reports become useful</h3><p>Dashboard, stock, statements and ageing reflect the same records.</p></div></div></div></section>
 
