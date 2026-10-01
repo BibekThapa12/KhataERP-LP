@@ -1,141 +1,84 @@
-import { useEffect, useState } from 'react'
-import {
-  ArrowRight, BarChart3, BookOpen, Boxes, CalendarDays, Check,
-  ChevronDown, FileText, Landmark, Menu, PackageCheck,
-  ReceiptText, Scale, ShieldCheck, TrendingUp, Users, WalletCards, X,
-} from 'lucide-react'
-import gitaSuppliersLogo from './assets/gita-suppliers-logo.png'
-import pradhanLiquorsLogo from './assets/pradhan-liquors-logo.png'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowRight, BarChart3, Boxes, Check, ChevronDown, ExternalLink, FileText, Landmark, Mail, MapPin, Menu, MessageCircle, Phone, ReceiptText, TrendingUp, Users, X } from 'lucide-react'
+import gitaLogo from './assets/gita-suppliers-logo.png'
+import pradhanLogo from './assets/pradhan-liquors-logo.png'
 
 const AUTH_URL = `${(import.meta.env.VITE_APP_URL || 'https://khataerp.xyz').replace(/\/+$/, '')}/login`
-const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || 'hello@khataerp.com'
+const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || 'enepalsofttech@gmail.com'
+const PHONE_DISPLAY = '974 924 1651'
+const PHONE_LINK = '+9779749241651'
+const MAP_COORDINATES = '26.640741,87.929737'
+type IconType = React.ComponentType<{ size?: number; 'aria-hidden'?: boolean }>
+type PreviewKey = 'entries' | 'cheques' | 'reports'
 
-type IconType = React.ComponentType<{ size?: number; strokeWidth?: number; 'aria-hidden'?: boolean }>
-
-type Client = {
-  id: string
-  name: string
-  category: string
-  location: string
-  description: string
-  logo: string | null
-}
-
-const clients: Client[] = [
-  { id: 'gita-suppliers', name: 'Gita Suppliers', category: 'Coca-Cola Distributor', location: 'Birtamod', description: 'Beverage distribution business serving retailers and outlets across the Birtamod area.', logo: gitaSuppliersLogo },
-  { id: 'muktinath-enterprises', name: 'Muktinath Enterprises', category: 'Beverage Distributor', location: 'Nepal', description: 'Official distributor of Barahsinghe Beer, focused on beverage distribution and retail supply.', logo: null },
-  { id: 'gaura-suppliers', name: 'Gaura Suppliers', category: 'Beverage Distributor', location: 'Birtamod', description: 'Distributor for Bottlers Nepal Terai Limited (BNTL), handling beverage sales and distribution operations.', logo: null },
-  { id: 'pradhan-liquors', name: 'Pradhan Liquors', category: 'Liquor Wholesale', location: 'Durgapur', description: 'Wholesale liquor supplier serving retailers and commercial customers in and around Durgapur.', logo: pradhanLiquorsLogo },
+const clients = [
+  { name: 'Gita Suppliers', logo: gitaLogo }, { name: 'Muktinath Enterprises', logo: null },
+  { name: 'Gaura Suppliers', logo: null }, { name: 'Pradhan Liquors', logo: pradhanLogo },
+  { name: 'Sherpa Cold Center', logo: null },
 ]
-
-const features: Array<{ icon: IconType; title: string; text: string; points: string[] }> = [
-  { icon: ReceiptText, title: 'Invoices & daily transactions', text: 'Record the work your business already does, without maintaining disconnected books.', points: ['Sales, purchases and returns', 'Receipts, payments and contra', 'Simple income and expense entry'] },
-  { icon: Boxes, title: 'Items, stock & valuation', text: 'Know what you have, how it moved, and what it is worth.', points: ['Products and services', 'Alternative units and conditions', 'Weighted Average, FIFO or LIFO'] },
-  { icon: Users, title: 'Parties & ledgers', text: 'Keep customers, suppliers, balances and account groups connected.', points: ['Debtors and creditors', 'Credit days and opening balances', 'Structured chart of accounts'] },
-  { icon: Landmark, title: 'Incoming & outgoing cheques', text: 'See what is coming in, what is going out, and what is overdue.', points: ['Pending and settled views', 'Due and overdue follow-up', 'Receipt or Payment on clearance'] },
-  { icon: BarChart3, title: 'Reports & dashboard', text: 'Turn the same daily entries into operational and financial visibility.', points: ['Profit & Loss and Balance Sheet', 'Cash Flow, VAT and ageing', 'Day Book, ledgers and registers'] },
-  { icon: ShieldCheck, title: 'Controls, data & configuration', text: 'Keep books structured while retaining practical control over your data.', points: ['B.S. fiscal years and numbering', 'Draft, complete and cancel flows', 'Portable backup and exports'] },
+const benefits: Array<{ icon: IconType; title: string; text: string }> = [
+  { icon: ReceiptText, title: 'Invoices & daily entries', text: 'Record sales, purchases, income and expenses while the books update underneath.' },
+  { icon: Boxes, title: 'Inventory & stock', text: 'See item movement, available stock and valuation from the same transactions.' },
+  { icon: Landmark, title: 'Cheque tracking', text: 'Follow incoming and outgoing cheques from issue or receipt through clearance.' },
+  { icon: BarChart3, title: 'Reports & business insights', text: 'Turn daily entries into ledgers, statements, VAT reports and ageing views.' },
 ]
-
-const reports = ['Day Book', 'Ledger / Group', 'Transaction Registers', 'Cash & Bank Book', 'Stock Summary', 'Stock Ledger', 'Profit & Loss', 'Balance Sheet', 'Cash Flow', 'Trial Balance', 'VAT Report', 'Debtors & Creditors Ageing']
-
+const tabs = [
+  { id: 'entries' as const, label: 'Daily entries', title: 'Everyday accounting, without the accounting jargon', text: 'Record where money moved and what it was for. KhataERP creates the balanced journal-backed entry.', points: ['Sales, purchases, income and expenses', 'Draft, complete, edit and print workflows'] },
+  { id: 'cheques' as const, label: 'Cheques', title: 'Know what is due before it is overdue', text: 'Track received and issued cheques, then create the linked receipt or payment when each one clears.', points: ['Pending, today, overdue and settled views', 'Clear, bounce and cancel workflows'] },
+  { id: 'reports' as const, label: 'Reports', title: 'See the business behind every entry', text: 'Move from daily records to financial statements and operational reports without rebuilding the numbers.', points: ['Profit & Loss, Balance Sheet and Cash Flow', 'Stock, VAT, ledgers and ageing reports'] },
+]
 const faqs = [
-  ['Is KhataERP made for businesses in Nepal?', 'Yes. KhataERP uses Nepali B.S. dates and fiscal-year workflows, NPR formatting, PAN/VAT identity fields, VAT-ready invoices and locally familiar accounting terminology.'],
-  ['Can I use it without accounting knowledge?', 'Yes. Simple Income and Expense screens use plain-language fields while KhataERP creates balanced Journal-backed entries underneath. Formal vouchers remain available for accountants.'],
-  ['Does it manage both stock and services?', 'Yes. You can maintain stock items and service items, categories, SKUs, barcodes, units, alternate units, reorder levels and inventory valuation.'],
-  ['How does cheque management work?', 'Record received or issued cheques, follow pending, due, overdue and settled items, and create the linked Receipt or Payment voucher when a cheque clears.'],
-  ['Can I export or back up my data?', 'The product includes printable reports, CSV exports and a portable company backup and restore workflow.'],
-  ['What happens after the free trial?', 'The public paid plans are being finalized. During launch, you can start the 14-day trial and contact the KhataERP team to continue on the right plan.'],
+  ['Can I use KhataERP without accounting knowledge?', 'Yes. Simple Income and Expense screens use plain-language fields while KhataERP creates balanced journal-backed entries underneath. Formal vouchers remain available for accountants.'],
+  ['How do I get started?', 'Open the trial, create your company, set its fiscal year and begin with your parties, items or opening balances. Contact our team if you want help choosing a plan.'],
+  ['What happens after the free trial?', 'Choose the plan that fits your business to keep using KhataERP, or contact our team for help selecting the right option.'],
+  ['Can I export or back up my data?', 'Yes. KhataERP includes printable reports, CSV exports and a portable company backup and restore workflow.'],
+  ['What support is available?', 'Contact the KhataERP team by email for product, onboarding, plan and data questions.'],
 ]
 
 function ButtonLink({ href, children, secondary = false, className = '' }: { href: string; children: React.ReactNode; secondary?: boolean; className?: string }) {
-  const opensAuth = href === AUTH_URL
-  return <a className={`button ${secondary ? 'button-outline' : ''} ${className}`} href={href} target={opensAuth ? '_blank' : undefined} rel={opensAuth ? 'noopener noreferrer' : undefined}>{children}</a>
+  const external = href === AUTH_URL
+  return <a className={`button ${secondary ? 'button-outline' : ''} ${className}`} href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}>{children}</a>
 }
-
-function SectionTitle({ eyebrow, title, description, center = false }: { eyebrow: string; title: string; description?: string; center?: boolean }) {
-  return <div className={`section-title ${center ? 'center' : ''}`}><p className="eyebrow">{eyebrow}</p><h2>{title}</h2>{description && <p>{description}</p>}</div>
-}
-
-function ClientCard({ client }: { client: Client }) {
-  const initials = client.name.split(' ').map(word => word[0]).join('').slice(0, 2)
-  return <article className="client-card">
-    <div className="client-card-head">
-      <div className={`client-logo ${client.id === 'gita-suppliers' || client.id === 'pradhan-liquors' ? 'client-logo-crop' : ''}`} aria-hidden="true">
-        {client.logo ? <img src={client.logo} alt="" /> : <span>{initials}</span>}
-      </div>
-      <div><h3>{client.name}</h3><p>{client.category}</p></div>
-    </div>
-    <p className="client-description">{client.description}</p>
-    <p className="client-location">{client.location}</p>
-  </article>
-}
-
-function ClientMarquee({ items }: { items: Client[] }) {
-  return <div className="client-marquee" tabIndex={0} aria-label="KhataERP clients">
-    <div className="clients-track">
-      <div className="clients-group">{items.map(client => <ClientCard client={client} key={client.id} />)}</div>
-      <div className="clients-group clients-group-copy" aria-hidden="true">{items.map(client => <ClientCard client={client} key={`copy-${client.id}`} />)}</div>
-    </div>
-  </div>
-}
-
-function ClientsSection() {
-  return <section className="clients-section" aria-labelledby="clients-title">
-    <div className="container clients-heading"><p className="eyebrow">Our clients</p><h2 id="clients-title">Trusted by businesses that run on KhataERP</h2><p>Helping businesses manage accounting, inventory, sales and everyday operations with confidence.</p></div>
-    <ClientMarquee items={clients} />
-  </section>
-}
+function SectionTitle({ title, description }: { title: string; description?: string }) { return <div className="section-title"><h2>{title}</h2>{description && <p>{description}</p>}</div> }
 
 function DashboardPreview() {
-  return <div className="dashboard-preview" aria-label="Illustration of the KhataERP dashboard">
-    <div className="preview-top"><div><span className="preview-brand">Khata</span><small>ERP for Nepal</small></div><div className="preview-user">Demo Company</div></div>
-    <div className="preview-body"><aside><span className="active"><BarChart3 size={14}/> Dashboard</span><span><ReceiptText size={14}/> Transactions</span><span><Users size={14}/> Masters</span><span><FileText size={14}/> Reports</span></aside><main>
+  return <div className="dashboard-preview" role="img" aria-label="KhataERP dashboard preview with NPR balances and business performance">
+    <div className="preview-top"><div><span>Khata</span><small>ERP for Nepal</small></div><small>Demo Company</small></div>
+    <div className="preview-body"><aside><b><BarChart3 size={14}/> Dashboard</b><span><ReceiptText size={14}/> Transactions</span><span><Users size={14}/> Masters</span><span><FileText size={14}/> Reports</span></aside><main>
       <div className="preview-heading"><div><b>Dashboard</b><small>Overview of your business</small></div><span>Fiscal Year 83/84</span></div>
       <div className="metric-grid"><div><small>Cash in Hand</small><b>Rs 2,45,000</b></div><div><small>Bank Balance</small><b>Rs 5,83,773</b></div><div><small>Receivables</small><b>Rs 1,26,500</b></div></div>
-      <div className="chart-card"><div className="chart-head"><b>Sales vs Purchase</b><small>This fiscal year</small></div><div className="chart-bars">{[48,66,42,78,58,88,72].map(height=><div key={height} className="bar-set"><i style={{height:`${height}%`}}/><i style={{height:`${Math.max(25,height-22)}%`}}/></div>)}</div><div className="chart-labels"><span>Baisakh</span><span>Ashadh</span><span>Bhadra</span><span>Kartik</span></div></div>
-      <div className="preview-table"><div><b>Recent Transactions</b><span>View All</span></div><p><span>Sales · INV-0042</span><b>Rs 32,500</b></p><p><span>Receipt · RCPT-0018</span><b>Rs 18,000</b></p></div>
+      <div className="chart-card"><div><b>Sales vs Purchase</b><small>This fiscal year</small></div><div className="chart-bars">{[48,66,42,78,58,88,72].map((height,i)=><span key={i}><i style={{height:`${height}%`}}/><i style={{height:`${Math.max(25,height-22)}%`}}/></span>)}</div><footer><small>Baisakh</small><small>Ashadh</small><small>Bhadra</small><small>Kartik</small></footer></div>
+      <div className="preview-table"><b>Recent transactions</b><p><span>Sales · INV-0042</span><strong>Rs 32,500</strong></p><p><span>Receipt · RCPT-0018</span><strong>Rs 18,000</strong></p></div>
     </main></div>
   </div>
 }
 
-function Header() {
-  const [open,setOpen]=useState(false)
-  useEffect(()=>{const close=()=>setOpen(false);window.addEventListener('hashchange',close);return()=>window.removeEventListener('hashchange',close)},[])
-  return <header className="site-header"><div className="container nav-wrap"><a href="#top" className="logo"><span>Khata</span><small>ERP for Nepal</small></a><nav className={open?'open':''} aria-label="Primary navigation"><a href="#features">Features</a><a href="#cheques">Cheques</a><a href="#reports">Reports</a><a href="#pricing">Pricing</a><a href="#security">Security</a><a href={`mailto:${CONTACT_EMAIL}`}>Contact</a><ButtonLink href={AUTH_URL} secondary>Sign in</ButtonLink><ButtonLink href={AUTH_URL}>Start free</ButtonLink></nav><button className="menu" aria-label={open?'Close navigation':'Open navigation'} onClick={()=>setOpen(!open)}>{open?<X/>:<Menu/>}</button></div></header>
+function ProductMock({ active }: { active: PreviewKey }) {
+  if (active === 'entries') return <div className="product-mock"><header><b>Add Income</b><span>Draft</span></header><label>Received into</label><div className="input">Bank Account <ChevronDown size={15}/></div><p><span>Commission Income</span><b>Rs 1,000.00</b></p><p className="total"><span>Total</span><b>Rs 1,000.00</b></p><button>Complete income</button></div>
+  if (active === 'cheques') return <div className="product-mock"><header><b>Incoming cheques</b><span>Priority</span></header><div className="cheque-head"><span>Party</span><span>Due</span><span>Amount</span></div><div className="cheque-row"><b>Muktinath Enterprises</b><strong>In 1 day</strong><b>Rs 15,000</b></div><div className="summary"><div><small>Pending</small><b>Rs 15,000</b></div><div><small>Due today</small><b>Rs 0</b></div></div></div>
+  return <div className="product-mock"><header><div><b>Profit & Loss</b><small>Trading and profit statement</small></div><span>Print</span></header><div className="summary"><div><small>Total sales</small><b>Rs 12,48,000</b></div><div><small>Net profit</small><b className="profit">Rs 3,42,800</b></div></div><p><span>Sales accounts</span><b>Rs 12,48,000</b></p><p><span>Cost of goods sold</span><b>Rs 8,29,500</b></p><p className="total"><span>Net profit</span><b className="profit">Rs 3,42,800</b></p></div>
 }
 
-function App() {
-  const [annual,setAnnual]=useState(false)
-  return <div id="top">
-    <Header />
-    <main>
-      <section className="hero"><div className="container hero-grid"><div className="hero-copy"><h1>Run your business books with confidence—<em>built for Nepal.</em></h1><p className="hero-text">Create invoices, track stock and cheques, manage cash and bank, and understand your reports from one connected cloud ERP.</p><div className="hero-actions"><ButtonLink href={AUTH_URL} className="button-lg">Start 14-day free trial <ArrowRight size={17}/></ButtonLink><ButtonLink href="#features" secondary className="button-lg">Explore features</ButtonLink></div><div className="hero-proof"><span><Check/> No card required*</span><span><Check/> Nepali B.S. dates</span><span><Check/> NPR ready</span></div><p className="microcopy">*Launch policy to be confirmed before publication.</p></div><div className="hero-visual"><div className="visual-glow"/><DashboardPreview/><div className="floating-card"><span><TrendingUp/></span><div><small>Net Profit</small><b>Rs 3,42,800</b></div></div></div></div></section>
-
-      <section className="trust-strip"><div className="container trust-grid"><div><CalendarDays/><span><b>Nepali-first</b><small>B.S. dates & fiscal years</small></span></div><div><ReceiptText/><span><b>VAT-ready</b><small>Optional VAT workflows</small></span></div><div><PackageCheck/><span><b>Inventory connected</b><small>Stock updates with vouchers</small></span></div><div><Scale/><span><b>Accounting-correct</b><small>Balanced entries underneath</small></span></div></div></section>
-
-      <ClientsSection />
-
-      <section className="section problem"><div className="container"><SectionTitle eyebrow="One connected system" title="Enter it once. See it everywhere it matters." description="KhataERP connects each transaction to the operational and financial view that depends on it." center/><div className="workflow"><div className="workflow-step"><span>01</span><ReceiptText/><h3>Create the document</h3><p>Invoice, purchase, receipt, payment, income, expense or cheque.</p></div><ArrowRight className="flow-arrow"/><div className="workflow-step"><span>02</span><BookOpen/><h3>Books update correctly</h3><p>Parties, cash, bank, ledgers and journal lines stay connected.</p></div><ArrowRight className="flow-arrow"/><div className="workflow-step"><span>03</span><BarChart3/><h3>Reports become useful</h3><p>Dashboard, stock, statements and ageing reflect the same records.</p></div></div></div></section>
-
-      <section className="section section-paper" id="features"><div className="container"><SectionTitle eyebrow="Complete business visibility" title="Everything needed to run the books—without the clutter" description="Plain-language workflows for daily operators, with the accounting structure professionals expect."/><div className="feature-grid">{features.map(({icon:Icon,title,text,points})=><article className="feature-card" key={title}><div className="icon-box"><Icon/></div><h3>{title}</h3><p>{text}</p><ul>{points.map(point=><li key={point}><Check/> {point}</li>)}</ul></article>)}</div></div></section>
-
-      <section className="section simple-section"><div className="container split"><div><SectionTitle eyebrow="Simple when you need it" title="Record income and expenses without debit and credit terminology" description="Choose where the money moved, select what it was for, and enter the amount. KhataERP creates the balanced Journal-backed accounting entry automatically."/><div className="simple-benefits"><p><Check/> Cash, bank and party ledgers are prioritized</p><p><Check/> Multiple income or expense lines in one entry</p><p><Check/> Draft, complete, edit, cancel and print workflows</p></div></div><div className="form-mock"><div className="form-title"><div><b>Add Income</b><small>No debit or credit knowledge needed</small></div><X size={17}/></div><label>Received into <em>*</em></label><div className="select-mock">Bank Account <ChevronDown/></div><div className="form-labels"><span>Income ledger</span><span>Amount</span></div><div className="form-line"><div>Commission Income <ChevronDown/></div><div>1,000</div></div><button>+ Add line</button><div className="form-total"><b>Total</b><b>Rs 1,000.00</b></div><div className="form-actions"><span>Save as Draft</span><strong>Complete Income</strong></div></div></div></section>
-
-      <section className="section cheque-section" id="cheques"><div className="container split reverse"><div className="cheque-board"><div className="cheque-tabs"><b>Incoming Cheque</b><span>Priority</span><span>Today</span><span>Overdue</span></div><div className="cheque-head"><span>Party</span><span>Cheque No.</span><span>Due Status</span><span>Amount</span></div><div className="cheque-row"><span>Muktinath Enterprises</span><span>15000</span><strong>Due in 1 day</strong><b>Rs 15,000.00</b></div><div className="kpi-pair"><div><small>Total pending cheques</small><b>Rs 15,000.00</b><span>1 cheque</span></div><div><small>Due today</small><b>Rs 0.00</b><span>0 cheques</span></div></div></div><div><SectionTitle eyebrow="Know what is coming in—and going out" title="Cheque commitments connected to your books" description="Separate incoming and outgoing workflows help you follow every cheque from issue or receipt through clearance."/><ul className="large-checks"><li><Check/> Pending, today, overdue and settled views</li><li><Check/> Party, bank, amount and clearing-date details</li><li><Check/> Linked Receipt for incoming clearance</li><li><Check/> Linked Payment for outgoing clearance</li><li><Check/> Bounce and cancel without false accounting entries</li></ul></div></div></section>
-
-      <section className="section section-paper" id="reports"><div className="container"><SectionTitle eyebrow="One set of books, many useful views" title="Reports for daily decisions and financial understanding" description="Move from a daily transaction to the ledger, stock movement, outstanding balance or statement behind it." center/><div className="report-shell"><div className="report-sidebar"><b>Reports</b>{reports.slice(0,6).map((r,i)=><span className={i===0?'active':''} key={r}>{r}</span>)}</div><div className="report-main"><div className="report-title"><div><b>Profit & Loss</b><small>Trading and profit statement</small></div><span>Print</span></div><div className="report-summary"><div><small>Total Sales</small><b>Rs 12,48,000</b></div><div><small>Gross Profit</small><b>Rs 4,18,500</b></div><div><small>Net Profit</small><b>Rs 3,42,800</b></div></div><div className="report-list"><p><span>Sales Accounts</span><b>Rs 12,48,000</b></p><p><span>Cost of Goods Sold</span><b>Rs 8,29,500</b></p><p><span>Indirect Expenses</span><b>Rs 75,700</b></p><p className="total"><span>Net Profit</span><b>Rs 3,42,800</b></p></div></div></div><div className="report-pills">{reports.map(r=><span key={r}>{r}</span>)}</div></div></section>
-
-      <section className="section security" id="security"><div className="container split"><div><SectionTitle eyebrow="Practical safeguards" title="Your business data deserves careful boundaries" description="KhataERP is built on Supabase authentication and tenant-scoped data access, with server-side validation protecting important accounting rules."/><div className="security-grid"><div><ShieldCheck/><span><b>Tenant isolation</b><small>Row-Level Security design keeps company data scoped.</small></span></div><div><Scale/><span><b>Accounting validation</b><small>Balanced posting and business rules are checked at the backend.</small></span></div><div><WalletCards/><span><b>Portable data</b><small>Backup, restore, CSV exports and printable reports.</small></span></div><div><FileText/><span><b>Clear error references</b><small>Meaningful client messages with support correlation IDs.</small></span></div></div></div><aside className="security-note"><ShieldCheck size={36}/><h3>Security claims stay precise</h3><p>Production security language will be published only after the deployment audit and provider-side launch checks are completed.</p><a href={`mailto:${CONTACT_EMAIL}`}>Ask about data and security <ArrowRight/></a></aside></div></section>
-
-      <section className="section pricing section-paper" id="pricing"><div className="container"><SectionTitle eyebrow="Simple launch pricing" title="Start free. Choose the right plan as you grow." description="Recommended pricing from the product PRD. Final commercial approval and paid checkout are still required before public launch." center/><div className="billing-toggle"><button className={!annual?'active':''} onClick={()=>setAnnual(false)}>Monthly</button><button className={annual?'active':''} onClick={()=>setAnnual(true)}>Yearly <span>2 months free</span></button></div><div className="pricing-grid"><article className="price-card"><p className="eyebrow">Starter</p><h3>For straightforward business books</h3><div className="price"><b>Rs {annual?'9,990':'999'}</b><span>/{annual?'year':'month'}</span></div><p>Per company. VAT treatment to be confirmed.</p><ul><li><Check/> Core sales and purchases</li><li><Check/> Receipts and payments</li><li><Check/> Parties and ledgers</li><li><Check/> Core financial reports</li><li><Check/> Portable backup and export</li></ul><ButtonLink href={AUTH_URL} secondary>Start free</ButtonLink></article><article className="price-card featured"><span className="popular">Recommended</span><p className="eyebrow">Business</p><h3>For stock-led retailers and traders</h3><div className="price"><b>Rs {annual?'19,990':'1,999'}</b><span>/{annual?'year':'month'}</span></div><p>Per company. VAT treatment to be confirmed.</p><ul><li><Check/> Everything in Starter</li><li><Check/> Inventory and valuation</li><li><Check/> Returns and advanced reports</li><li><Check/> Receivable/payable ageing</li><li><Check/> Cheque Management included</li></ul><ButtonLink href={AUTH_URL}>Start free</ButtonLink></article><article className="price-card"><p className="eyebrow">Multi-company</p><h3>For several business books</h3><div className="price"><b>Custom</b></div><p>Annual agreement based on company allowance.</p><ul><li><Check/> Everything in Business</li><li><Check/> Licensed company allowance</li><li><Check/> Assisted onboarding</li><li><Check/> Priority support</li><li><Check/> Custom module terms</li></ul><ButtonLink href={`mailto:${CONTACT_EMAIL}`} secondary>Contact sales</ButtonLink></article></div><p className="pricing-disclaimer">Pricing shown is a product recommendation and must not be published as final until plan enforcement, VAT treatment, billing and terms are approved.</p></div></section>
-
-      <section className="section faq"><div className="container narrow"><SectionTitle eyebrow="Questions, answered" title="Everything you need to know before starting" center/><div className="faq-list">{faqs.map(([question,answer],index)=><details key={question} open={index===0}><summary>{question}<ChevronDown/></summary><p>{answer}</p></details>)}</div></div></section>
-
-      <section className="final-cta"><div className="container"><div><p className="eyebrow">Ready to simplify the books?</p><h2>Give your business one clear financial home.</h2><p>Start with invoices and daily entries. Grow into inventory, cheques, controls and complete reports.</p></div><div><ButtonLink href={AUTH_URL} className="button-lg">Start 14-day free trial <ArrowRight/></ButtonLink><a href={`mailto:${CONTACT_EMAIL}`}>or talk to the KhataERP team</a></div></div></section>
-    </main>
-    <footer><div className="container footer-grid"><div><a href="#top" className="logo light"><span>Khata</span><small>ERP for Nepal</small></a><p>Accounting, inventory and cheque management for businesses in Nepal.</p></div><div><b>Product</b><a href="#features">Features</a><a href="#cheques">Cheques</a><a href="#reports">Reports</a><a href="#pricing">Pricing</a></div><div><b>Company</b><a href={`mailto:${CONTACT_EMAIL}`}>Contact</a><a href="#security">Security</a><a href={AUTH_URL} target="_blank" rel="noopener noreferrer">Sign in</a></div><div><b>Legal</b><span>Privacy policy — required</span><span>Terms — required</span></div></div><div className="container footer-bottom"><span>© 2026 KhataERP. All rights reserved.</span><span>Built for Nepalese businesses.</span></div></footer>
-  </div>
+function ProductPreview() {
+  const [active,setActive]=useState<PreviewKey>('entries'); const refs=useRef<Array<HTMLButtonElement|null>>([])
+  const selected=tabs.find(tab=>tab.id===active)!
+  const onKey=(event:React.KeyboardEvent,index:number)=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?2:(index+(event.key==='ArrowRight'?1:-1)+3)%3;setActive(tabs[next].id);refs.current[next]?.focus()}
+  return <section className="section product" aria-labelledby="preview-title"><div className="container"><SectionTitle title="See the work in one place" description="The same business records power daily operations, cheque follow-up and financial reporting."/><div className="tabs" role="tablist" aria-label="Product previews">{tabs.map((tab,i)=><button key={tab.id} ref={node=>{refs.current[i]=node}} role="tab" id={`tab-${tab.id}`} aria-selected={active===tab.id} aria-controls={`panel-${tab.id}`} tabIndex={active===tab.id?0:-1} onClick={()=>setActive(tab.id)} onKeyDown={e=>onKey(e,i)}>{tab.label}</button>)}</div><div className="tab-panel" role="tabpanel" id={`panel-${active}`} aria-labelledby={`tab-${active}`}><div><small>{selected.label}</small><h3>{selected.title}</h3><p>{selected.text}</p><ul>{selected.points.map(point=><li key={point}><Check size={16}/> {point}</li>)}</ul></div><ProductMock active={active}/></div></div></section>
 }
+
+function Header(){const[open,setOpen]=useState(false);useEffect(()=>{const close=()=>setOpen(false);addEventListener('hashchange',close);return()=>removeEventListener('hashchange',close)},[]);return <header className="site-header"><div className="container nav"><a className="logo" href="#top"><span>Khata</span><small>ERP for Nepal</small></a><nav className={open?'open':''} id="primary-navigation"><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#contact">Contact</a><ButtonLink href={AUTH_URL} secondary>Sign in</ButtonLink><ButtonLink href={AUTH_URL}>Start free trial</ButtonLink></nav><button className="menu" aria-label={open?'Close navigation':'Open navigation'} aria-expanded={open} aria-controls="primary-navigation" onClick={()=>setOpen(!open)}>{open?<X/>:<Menu/>}</button></div></header>}
+
+function App(){const[annual,setAnnual]=useState(false);return <div id="top"><a className="skip" href="#main">Skip to content</a><Header/><main id="main">
+  <section className="hero"><div className="container hero-grid"><div><small className="kicker">Business software for Nepal</small><h1>Accounting and inventory, <em>built for Nepal.</em></h1><p className="hero-text">Manage invoices, stock, cheques, and business reports in one place.</p><div className="hero-actions"><ButtonLink href={AUTH_URL} className="button-lg">Start free trial <ArrowRight size={17}/></ButtonLink><a className="text-link" href="#features">Explore features <ArrowRight size={15}/></a></div><p className="trial">14 days free · No card required</p><div className="local"><span>Nepali B.S. dates</span><span>NPR</span><span>VAT-ready support</span></div></div><div className="hero-visual"><DashboardPreview/><div className="floating"><TrendingUp/><span><small>Net profit</small><b>Rs 3,42,800</b></span></div></div></div></section>
+  <section className="clients" aria-labelledby="clients-title"><div className="container clients-layout"><div><small className="kicker">Trusted by Nepalese businesses</small><h2 id="clients-title">Customers using KhataERP</h2></div><div className="client-list">{clients.map(c=>{const initials=c.name.split(' ').map(w=>w[0]).join('').slice(0,2);return <div className="client" key={c.name}><span className={c.logo?'image':''}>{c.logo?<img src={c.logo} alt=""/>:initials}</span><b>{c.name}</b></div>})}</div></div></section>
+  <section className="section benefits" id="features"><div className="container"><SectionTitle title="The essentials, connected" description="Enter a transaction once. KhataERP keeps the operational and financial views in step."/><div className="benefit-grid">{benefits.map(({icon:Icon,title,text},i)=><article key={title}><small>0{i+1}</small><Icon/><div><h3>{title}</h3><p>{text}</p></div></article>)}</div></div></section>
+  <ProductPreview/>
+  <section className="section pricing" id="pricing"><div className="container"><div className="pricing-head"><SectionTitle title="Pricing that stays clear" description="Every listed price is for one company. Choose monthly or yearly billing."/><div className="billing" role="group" aria-label="Billing period"><button className={!annual?'active':''} aria-pressed={!annual} onClick={()=>setAnnual(false)}>Monthly</button><button className={annual?'active':''} aria-pressed={annual} onClick={()=>setAnnual(true)}>Yearly <span>2 months free</span></button></div></div><div className="price-grid"><Price name="Starter" title="For straightforward business books" price={`Rs ${annual?'9,990':'999'}`} period={`per ${annual?'year':'month'}`} note="For one company" features={['Core sales and purchases','Receipts and payments','Parties and ledgers','Core financial reports','Portable backup and export']} secondary/><Price name="Business" title="For stock-led retailers and traders" price={`Rs ${annual?'19,990':'1,999'}`} period={`per ${annual?'year':'month'}`} note="For one company" features={['Everything in Starter','Inventory and valuation','Returns and advanced reports','Receivable/payable ageing','Cheque management included']} featured/><Price name="Multi-company" title="For several business books" price="Custom" period="annual agreement" note="Based on company allowance" features={['Everything in Business','Licensed company allowance','Assisted onboarding','Priority support','Custom module terms']} custom/></div><p className="pricing-note">Need details about data access or technical safeguards? <a href={`mailto:${CONTACT_EMAIL}`}>Ask the KhataERP team.</a></p></div></section>
+  <section className="section contact" id="contact" aria-labelledby="contact-title"><div className="container contact-layout"><div className="contact-copy"><h2 id="contact-title">eNepal Software Technologies</h2><p>Questions about setup, pricing, or moving your business records? Call, message, or visit us in Durgapur.</p><div className="contact-links"><a href={`mailto:${CONTACT_EMAIL}`}><Mail/><span><small>Email</small><b>{CONTACT_EMAIL}</b></span></a><a href={`tel:${PHONE_LINK}`}><Phone/><span><small>Call</small><b>{PHONE_DISPLAY}</b></span></a><a href={`https://wa.me/${PHONE_LINK.replace('+','')}`} target="_blank" rel="noopener noreferrer"><MessageCircle/><span><small>WhatsApp</small><b>{PHONE_DISPLAY}</b></span></a><a href={`https://www.google.com/maps/search/?api=1&query=${MAP_COORDINATES}`} target="_blank" rel="noopener noreferrer"><MapPin/><span><small>Visit</small><b>Kanakai-1, Durgapur, Jhapa</b></span><ExternalLink className="external"/></a></div></div><div className="map-wrap"><iframe title="eNepal Software Technologies in Kanakai-1, Durgapur, Jhapa" src={`https://www.google.com/maps?q=${MAP_COORDINATES}&z=16&output=embed`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen></iframe><a href={`https://www.google.com/maps/search/?api=1&query=${MAP_COORDINATES}`} target="_blank" rel="noopener noreferrer">Open in Google Maps <ExternalLink size={15}/></a></div></div></section>
+  <section className="section faq"><div className="container faq-layout"><SectionTitle title="Questions before you start" description="Practical answers about setup, trial access, data and support."/><div className="faq-list">{faqs.map(([q,a])=><details key={q}><summary>{q}<ChevronDown/></summary><p>{a}</p></details>)}</div></div></section>
+  <section className="final"><div className="container"><div><h2>Ready to bring the books together?</h2><p>Start with your everyday entries and see the business clearly.</p></div><div><ButtonLink href={AUTH_URL} className="button-lg">Start free trial <ArrowRight size={17}/></ButtonLink><small>14 days free · No card required</small></div></div></section>
+  </main><footer className="site-footer"><div className="container footer-grid"><div><a href="#top" className="logo light"><span>Khata</span><small>ERP for Nepal</small></a><p>Accounting, inventory and cheque management for businesses in Nepal.</p></div><div><b>Product</b><a href="#features">Features</a><a href="#pricing">Pricing</a><a href={AUTH_URL} target="_blank" rel="noopener noreferrer">Sign in</a></div><div><b>Company</b><a href="#contact">Contact</a><a href={`mailto:${CONTACT_EMAIL}?subject=KhataERP%20security%20question`}>Security</a></div><div><b>Legal</b><span>Privacy policy</span><span>Terms</span></div></div><div className="container footer-bottom"><span>© 2026 KhataERP. All rights reserved.</span><span>Built for Nepalese businesses.</span></div></footer></div>}
+
+function Price({name,title,price,period,note,features,featured=false,secondary=false,custom=false}:{name:string;title:string;price:string;period:string;note:string;features:string[];featured?:boolean;secondary?:boolean;custom?:boolean}){return <article className={`price-card ${featured?'featured':''}`}>{featured&&<span className="popular">Recommended</span>}<small className="plan">{name}</small><h3>{title}</h3><div className="price"><b>{price}</b><span>{period}</span></div><p className="company-note">{note}</p><ul>{features.map(f=><li key={f}><Check size={15}/>{f}</li>)}</ul><ButtonLink href={custom?`mailto:${CONTACT_EMAIL}`:AUTH_URL} secondary={secondary||custom}>{custom?'Contact sales':'Start free trial'}</ButtonLink></article>}
 
 export { App }
