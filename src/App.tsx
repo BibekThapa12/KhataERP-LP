@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, BarChart3, Boxes, Check, ChevronDown, ExternalLink, FileText, Landmark, Mail, MapPin, Menu, MessageCircle, Phone, ReceiptText, TrendingUp, Users, X } from 'lucide-react'
+import { ArrowRight, BarChart3, Boxes, Check, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, FileText, Landmark, Mail, MapPin, Menu, MessageCircle, Pause, Phone, Play, ReceiptText, TrendingUp, Users, X } from 'lucide-react'
 import gitaLogo from './assets/gita-suppliers-logo.png'
 import pradhanLogo from './assets/pradhan-liquors-logo.png'
 
@@ -12,9 +12,11 @@ type IconType = React.ComponentType<{ size?: number; 'aria-hidden'?: boolean }>
 type PreviewKey = 'entries' | 'cheques' | 'reports'
 
 const clients = [
-  { name: 'Gita Suppliers', logo: gitaLogo }, { name: 'Muktinath Enterprises', logo: null },
-  { name: 'Gaura Suppliers', logo: null }, { name: 'Pradhan Liquors', logo: pradhanLogo },
-  { name: 'Sherpa Cold Center', logo: null },
+  { id: 'gita', name: 'Gita Suppliers', category: 'Coca-Cola Distributor', location: 'Birtamod', logo: gitaLogo, initials: 'GS' },
+  { id: 'muktinath', name: 'Muktinath Enterprises', category: 'Beverage Distributor', location: 'Nepal', logo: null, initials: 'ME' },
+  { id: 'gaura', name: 'Gaura Suppliers', category: 'Beverage Distributor', location: 'Birtamod', logo: null, initials: 'GS' },
+  { id: 'pradhan', name: 'Pradhan Liquors', category: 'Liquor Wholesale', location: 'Durgapur', logo: pradhanLogo, initials: 'PL' },
+  { id: 'sherpa', name: 'Sherpa Cold Center', category: 'Liquor Shop', location: 'Durgapur, Jhapa', logo: null, initials: 'SC' },
 ]
 const benefits: Array<{ icon: IconType; title: string; text: string }> = [
   { icon: ReceiptText, title: 'Invoices & daily entries', text: 'Record sales, purchases, income and expenses while the books update underneath.' },
@@ -53,6 +55,47 @@ function DashboardPreview() {
   </div>
 }
 
+type Client = (typeof clients)[number]
+
+function ClientMark({ client }: { client: Client }) {
+  return <span className={`marquee-logo marquee-logo-${client.id} ${client.logo ? 'has-logo' : 'custom-logo'}`} aria-hidden="true">
+    {client.logo ? <img src={client.logo} alt="" loading="lazy" decoding="async" /> : <><i></i><b>{client.initials}</b></>}
+  </span>
+}
+
+function ClientTile({ client }: { client: Client }) {
+  return <article className="client-tile"><ClientMark client={client}/><div className="client-details"><p>{client.category}</p><h3>{client.name}</h3><span>{client.location}</span></div></article>
+}
+
+function ClientsMarquee() {
+  const [paused,setPaused]=useState(false)
+  const [status,setStatus]=useState('Client showcase is playing.')
+  const marqueeRef=useRef<HTMLDivElement|null>(null)
+  const trackRef=useRef<HTMLDivElement|null>(null)
+
+  const animation=()=>trackRef.current?.getAnimations()[0]
+  useEffect(()=>{const current=animation();if(!current)return;if(paused)current.pause();else current.play()},[paused])
+
+  const togglePlayback=()=>{setPaused(current=>{const next=!current;setStatus(`Client showcase ${next?'paused':'playing'}.`);return next})}
+  const move=(direction:-1|1)=>{
+    setPaused(true)
+    const current=animation()
+    if(current){
+      current.pause()
+      const duration=34000
+      const time=typeof current.currentTime==='number'?current.currentTime:0
+      current.currentTime=(time+direction*(duration/clients.length)+duration)%duration
+    }else{
+      const tile=marqueeRef.current?.querySelector<HTMLElement>('.client-tile')
+      marqueeRef.current?.scrollBy({left:direction*((tile?.offsetWidth||290)+16),behavior:'smooth'})
+    }
+    setStatus(`Client showcase paused. Moved to ${direction>0?'next':'previous'} clients.`)
+  }
+  const pauseForTouch=(event:React.PointerEvent)=>{if(event.pointerType==='touch'){setPaused(true);setStatus('Client showcase paused for touch navigation.')}}
+
+  return <section className="clients-marquee-section" aria-labelledby="clients-title"><div className="container clients-marquee-heading"><div><p>Our clients</p><h2 id="clients-title">Trusted by businesses that keep Nepal moving.</h2></div><div className="clients-marquee-intro"><p>Retailers, distributors and wholesalers use KhataERP to keep everyday operations and accounts connected.</p><div className="clients-marquee-controls" aria-label="Client showcase controls"><button type="button" onClick={()=>move(-1)} aria-label="Show previous clients"><ChevronLeft aria-hidden="true"/></button><button className="playback-control" type="button" onClick={togglePlayback} aria-label={paused?'Play client showcase':'Pause client showcase'} aria-pressed={paused}>{paused?<Play aria-hidden="true"/>:<Pause aria-hidden="true"/>}<span>{paused?'Play':'Pause'}</span></button><button type="button" onClick={()=>move(1)} aria-label="Show next clients"><ChevronRight aria-hidden="true"/></button></div></div></div><div ref={marqueeRef} className={`clients-marquee ${paused?'is-paused':''}`} tabIndex={0} aria-label="KhataERP clients" onPointerDown={pauseForTouch}><div ref={trackRef} className="clients-marquee-track"><div className="clients-marquee-group">{clients.map(client=><ClientTile client={client} key={client.id}/>)}</div><div className="clients-marquee-group" aria-hidden="true">{clients.map(client=><ClientTile client={client} key={`copy-${client.id}`}/>)}</div></div></div><p className="sr-only" aria-live="polite">{status}</p></section>
+}
+
 function ProductMock({ active }: { active: PreviewKey }) {
   if (active === 'entries') return <div className="product-mock"><header><b>Add Income</b><span>Draft</span></header><label>Received into</label><div className="input">Bank Account <ChevronDown size={15}/></div><p><span>Commission Income</span><b>Rs 1,000.00</b></p><p className="total"><span>Total</span><b>Rs 1,000.00</b></p><button>Complete income</button></div>
   if (active === 'cheques') return <div className="product-mock"><header><b>Incoming cheques</b><span>Priority</span></header><div className="cheque-head"><span>Party</span><span>Due</span><span>Amount</span></div><div className="cheque-row"><b>Muktinath Enterprises</b><strong>In 1 day</strong><b>Rs 15,000</b></div><div className="summary"><div><small>Pending</small><b>Rs 15,000</b></div><div><small>Due today</small><b>Rs 0</b></div></div></div>
@@ -66,11 +109,11 @@ function ProductPreview() {
   return <section className="section product" aria-labelledby="preview-title"><div className="container"><SectionTitle title="See the work in one place" description="The same business records power daily operations, cheque follow-up and financial reporting."/><div className="tabs" role="tablist" aria-label="Product previews">{tabs.map((tab,i)=><button key={tab.id} ref={node=>{refs.current[i]=node}} role="tab" id={`tab-${tab.id}`} aria-selected={active===tab.id} aria-controls={`panel-${tab.id}`} tabIndex={active===tab.id?0:-1} onClick={()=>setActive(tab.id)} onKeyDown={e=>onKey(e,i)}>{tab.label}</button>)}</div><div className="tab-panel" role="tabpanel" id={`panel-${active}`} aria-labelledby={`tab-${active}`}><div><small>{selected.label}</small><h3>{selected.title}</h3><p>{selected.text}</p><ul>{selected.points.map(point=><li key={point}><Check size={16}/> {point}</li>)}</ul></div><ProductMock active={active}/></div></div></section>
 }
 
-function Header(){const[open,setOpen]=useState(false);useEffect(()=>{const close=()=>setOpen(false);addEventListener('hashchange',close);return()=>removeEventListener('hashchange',close)},[]);return <header className="site-header"><div className="container nav"><a className="logo" href="#top"><span>Khata</span><small>ERP for Nepal</small></a><nav className={open?'open':''} id="primary-navigation"><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#contact">Contact</a><ButtonLink href={AUTH_URL} secondary>Sign in</ButtonLink><ButtonLink href={AUTH_URL}>Start free trial</ButtonLink></nav><button className="menu" aria-label={open?'Close navigation':'Open navigation'} aria-expanded={open} aria-controls="primary-navigation" onClick={()=>setOpen(!open)}>{open?<X/>:<Menu/>}</button></div></header>}
+function Header(){const[open,setOpen]=useState(false);useEffect(()=>{const close=()=>setOpen(false);addEventListener('hashchange',close);return()=>removeEventListener('hashchange',close)},[]);return <header className="site-header"><div className="container nav"><a className="logo" href="#top"><span>Khata</span><small>ERP for Nepal</small></a><nav className={open?'open':''} id="primary-navigation" aria-label="Primary navigation"><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#contact">Contact</a><ButtonLink href={AUTH_URL} secondary>Sign in</ButtonLink><ButtonLink href={AUTH_URL}>Start free trial</ButtonLink></nav><button className="menu" aria-label={open?'Close navigation':'Open navigation'} aria-expanded={open} aria-controls="primary-navigation" onClick={()=>setOpen(!open)}>{open?<X aria-hidden="true"/>:<Menu aria-hidden="true"/>}</button></div></header>}
 
 function App(){const[annual,setAnnual]=useState(false);return <div id="top"><a className="skip" href="#main">Skip to content</a><Header/><main id="main">
   <section className="hero"><div className="container hero-grid"><div><small className="kicker">Business software for Nepal</small><h1>Accounting and inventory, <em>built for Nepal.</em></h1><p className="hero-text">Manage invoices, stock, cheques, and business reports in one place.</p><div className="hero-actions"><ButtonLink href={AUTH_URL} className="button-lg">Start free trial <ArrowRight size={17}/></ButtonLink><a className="text-link" href="#features">Explore features <ArrowRight size={15}/></a></div><p className="trial">14 days free · No card required</p><div className="local"><span>Nepali B.S. dates</span><span>NPR</span><span>VAT-ready support</span></div></div><div className="hero-visual"><DashboardPreview/><div className="floating"><TrendingUp/><span><small>Net profit</small><b>Rs 3,42,800</b></span></div></div></div></section>
-  <section className="clients" aria-labelledby="clients-title"><div className="container clients-layout"><div><small className="kicker">Trusted by Nepalese businesses</small><h2 id="clients-title">Customers using KhataERP</h2></div><div className="client-list">{clients.map(c=>{const initials=c.name.split(' ').map(w=>w[0]).join('').slice(0,2);return <div className="client" key={c.name}><span className={c.logo?'image':''}>{c.logo?<img src={c.logo} alt=""/>:initials}</span><b>{c.name}</b></div>})}</div></div></section>
+  <ClientsMarquee/>
   <section className="section benefits" id="features"><div className="container"><SectionTitle title="The essentials, connected" description="Enter a transaction once. KhataERP keeps the operational and financial views in step."/><div className="benefit-grid">{benefits.map(({icon:Icon,title,text},i)=><article key={title}><small>0{i+1}</small><Icon/><div><h3>{title}</h3><p>{text}</p></div></article>)}</div></div></section>
   <ProductPreview/>
   <section className="section pricing" id="pricing"><div className="container"><div className="pricing-head"><SectionTitle title="Pricing that stays clear" description="Every listed price is for one company. Choose monthly or yearly billing."/><div className="billing" role="group" aria-label="Billing period"><button className={!annual?'active':''} aria-pressed={!annual} onClick={()=>setAnnual(false)}>Monthly</button><button className={annual?'active':''} aria-pressed={annual} onClick={()=>setAnnual(true)}>Yearly <span>2 months free</span></button></div></div><div className="price-grid"><Price name="Starter" title="For straightforward business books" price={`Rs ${annual?'9,990':'999'}`} period={`per ${annual?'year':'month'}`} note="For one company" features={['Core sales and purchases','Receipts and payments','Parties and ledgers','Core financial reports','Portable backup and export']} secondary/><Price name="Business" title="For stock-led retailers and traders" price={`Rs ${annual?'19,990':'1,999'}`} period={`per ${annual?'year':'month'}`} note="For one company" features={['Everything in Starter','Inventory and valuation','Returns and advanced reports','Receivable/payable ageing','Cheque management included']} featured/><Price name="Multi-company" title="For several business books" price="Custom" period="annual agreement" note="Based on company allowance" features={['Everything in Business','Licensed company allowance','Assisted onboarding','Priority support','Custom module terms']} custom/></div><p className="pricing-note">Need details about data access or technical safeguards? <a href={`mailto:${CONTACT_EMAIL}`}>Ask the KhataERP team.</a></p></div></section>
